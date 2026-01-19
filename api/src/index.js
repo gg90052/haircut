@@ -3,8 +3,7 @@
  * 代理前端請求到 Gemini API，保護 API 金鑰不暴露
  */
 
-const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
-const MODEL_ID = 'gemini-2.0-flash-exp-image-generation';
+const NANO_BANANA_API = 'https://nanobanana.scmou104.workers.dev/api/generate';
 
 /**
  * 處理 CORS headers
@@ -97,40 +96,29 @@ async function handleGenerate(request, env) {
       },
     };
 
-    // 呼叫 Gemini API
-    const apiKey = env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'API 金鑰未設定' }),
-        { status: 500, headers: { ...headers, 'Content-Type': 'application/json' } }
-      );
-    }
+    // 呼叫 Nano Banana API
+    const nanoBananaResponse = await fetch(NANO_BANANA_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-    const geminiResponse = await fetch(
-      `${GEMINI_API_BASE}/models/${MODEL_ID}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
+    // 處理 Nano Banana API 回應
+    const responseData = await nanoBananaResponse.json();
 
-    // 處理 Gemini API 回應
-    const geminiData = await geminiResponse.json();
-
-    if (!geminiResponse.ok) {
-      const errorMessage = geminiData.error?.message || '生成失敗';
+    if (!nanoBananaResponse.ok) {
+      const errorMessage = responseData.error?.message || responseData.error || '生成失敗';
       return new Response(
         JSON.stringify({ error: errorMessage }),
-        { status: geminiResponse.status, headers: { ...headers, 'Content-Type': 'application/json' } }
+        { status: nanoBananaResponse.status, headers: { ...headers, 'Content-Type': 'application/json' } }
       );
     }
 
     // 回傳結果
     return new Response(
-      JSON.stringify(geminiData),
+      JSON.stringify(responseData),
       { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } }
     );
 
