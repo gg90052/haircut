@@ -1,15 +1,18 @@
 import axios from 'axios'
 
+// API 端點：部署 Worker 後請更新此 URL
+// 本地開發時使用 localhost，生產環境使用 Worker URL
+const API_BASE_URL = import.meta.env.DEV
+  ? 'http://localhost:8787'
+  : 'https://haircut-api.gg90052.workers.dev'
+
 const apiClient = axios.create({
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+  baseURL: API_BASE_URL,
   timeout: 120000, // 2 minutes for image generation
   headers: {
     'Content-Type': 'application/json'
   }
 })
-
-// Note: API key is passed as query parameter in individual requests
-// Not added here as interceptor to allow flexibility per endpoint
 
 // Handle response errors
 apiClient.interceptors.response.use(
@@ -34,7 +37,7 @@ apiClient.interceptors.response.use(
           error.message = 'API 服務暫時無法使用，請稍後再試'
           break
         default:
-          error.message = data?.error?.message || '發生未知錯誤'
+          error.message = data?.error?.message || data?.error || '發生未知錯誤'
       }
     } else if (error.request) {
       // Request made but no response

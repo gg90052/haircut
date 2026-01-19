@@ -30,75 +30,28 @@ export const useNanoBanana = () => {
 
       progress.value = 10;
 
-      // Construct the prompt for hairstyle transfer
-      const prompt = `Transfer the hairstyle from the reference image to the target person while preserving their facial identity and features. Create a photorealistic result with:
-- Shadow-matched hairline
-- Scalp-hugging fit that follows the head contour
-- Natural face-framing that complements facial structure
-- Consistent hair texture and color from reference
-- Proper lighting that matches the original photo
-- Show the result from both front view and side view for consistency`;
-
-      progress.value = 20;
-
-      const modelId = "gemini-3-pro-image-preview";
-
-      // Prepare request payload
+      // 準備請求資料（只傳送圖片，prompt 由後端處理）
       const requestBody = {
-        contents: [
-          {
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: front,
-                },
-              },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: side,
-                },
-              },
-              {
-                inline_data: {
-                  mime_type: "image/jpeg",
-                  data: hairstyle,
-                },
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 4096,
-        },
+        front,
+        side,
+        hairstyle,
       };
 
       progress.value = 30;
 
-      // Get API key and add as query parameter
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error(
-          "未設定 API 金鑰，請在 .env.local 檔案中設定 VITE_GEMINI_API_KEY",
-        );
-      }
-
-      // Make API request with API key as query parameter
-      console.log("發送 API 請求到:", `/models/${modelId}:generateContent`);
-      const response = await apiClient.post(
-        `/models/${modelId}:generateContent?key=${apiKey}`,
-        requestBody,
-      );
+      // 呼叫後端 API（API 金鑰由後端管理）
+      console.log("發送 API 請求到後端代理伺服器...");
+      const response = await apiClient.post("/api/generate", requestBody);
 
       progress.value = 80;
 
       // Debug: Log full API response
       console.log("API 完整回應:", JSON.stringify(response.data, null, 2));
+
+      // 處理錯誤回應
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
 
       // Extract generated image from response
       if (response.data?.candidates?.[0]?.content?.parts) {
