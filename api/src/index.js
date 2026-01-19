@@ -3,22 +3,24 @@
  * 代理前端請求到 Gemini API，保護 API 金鑰不暴露
  */
 
-const NANO_BANANA_API = 'https://nanobanana.scmou104.workers.dev/api/generate';
+const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const MODEL_ID = "gemini-3-pro-image-preview";
 
 /**
  * 處理 CORS headers
  */
 function corsHeaders(origin, allowedOrigin) {
   // 檢查來源是否允許
-  const isAllowed = origin === allowedOrigin ||
-                    origin === 'http://localhost:3000' ||
-                    origin?.startsWith('http://localhost:');
+  const isAllowed =
+    origin === allowedOrigin ||
+    origin === "http://localhost:3000" ||
+    origin?.startsWith("http://localhost:");
 
   return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
+    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
   };
 }
 
@@ -26,7 +28,7 @@ function corsHeaders(origin, allowedOrigin) {
  * 處理 OPTIONS preflight 請求
  */
 function handleOptions(request, env) {
-  const origin = request.headers.get('Origin') || '';
+  const origin = request.headers.get("Origin") || "";
   return new Response(null, {
     status: 204,
     headers: corsHeaders(origin, env.ALLOWED_ORIGIN),
@@ -37,7 +39,7 @@ function handleOptions(request, env) {
  * 處理生成髮型請求
  */
 async function handleGenerate(request, env) {
-  const origin = request.headers.get('Origin') || '';
+  const origin = request.headers.get("Origin") || "";
   const headers = corsHeaders(origin, env.ALLOWED_ORIGIN);
 
   try {
@@ -47,10 +49,10 @@ async function handleGenerate(request, env) {
 
     // 驗證必要欄位
     if (!front || !side || !hairstyle) {
-      return new Response(
-        JSON.stringify({ error: '缺少必要的照片' }),
-        { status: 400, headers: { ...headers, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "缺少必要的照片" }), {
+        status: 400,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
     // 構建 Gemini API 請求
@@ -69,19 +71,19 @@ async function handleGenerate(request, env) {
             { text: prompt },
             {
               inline_data: {
-                mime_type: 'image/jpeg',
+                mime_type: "image/jpeg",
                 data: front,
               },
             },
             {
               inline_data: {
-                mime_type: 'image/jpeg',
+                mime_type: "image/jpeg",
                 data: side,
               },
             },
             {
               inline_data: {
-                mime_type: 'image/jpeg',
+                mime_type: "image/jpeg",
                 data: hairstyle,
               },
             },
@@ -96,37 +98,50 @@ async function handleGenerate(request, env) {
       },
     };
 
-    // 呼叫 Nano Banana API
-    const nanoBananaResponse = await fetch(NANO_BANANA_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // 呼叫 Gemini API
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: "API 金鑰未設定" }), {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+
+    const geminiResponse = await fetch(
+      `${GEMINI_API_BASE}/models/${MODEL_ID}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    });
+    );
 
-    // 處理 Nano Banana API 回應
-    const responseData = await nanoBananaResponse.json();
+    // 處理 Gemini API 回應
+    const geminiData = await geminiResponse.json();
 
-    if (!nanoBananaResponse.ok) {
-      const errorMessage = responseData.error?.message || responseData.error || '生成失敗';
-      return new Response(
-        JSON.stringify({ error: errorMessage }),
-        { status: nanoBananaResponse.status, headers: { ...headers, 'Content-Type': 'application/json' } }
-      );
+    if (!geminiResponse.ok) {
+      const errorMessage = geminiData.error?.message || "生成失敗";
+      return new Response(JSON.stringify({ error: errorMessage }), {
+        status: geminiResponse.status,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
     }
 
     // 回傳結果
-    return new Response(
-      JSON.stringify(responseData),
-      { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify(geminiData), {
+      status: 200,
+      headers: { ...headers, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || '伺服器錯誤' }),
-      { status: 500, headers: { ...headers, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error.message || "伺服器錯誤" }),
+      {
+        status: 500,
+        headers: { ...headers, "Content-Type": "application/json" },
+      },
     );
   }
 }
@@ -140,30 +155,30 @@ export default {
     const path = url.pathname;
 
     // 處理 CORS preflight
-    if (request.method === 'OPTIONS') {
+    if (request.method === "OPTIONS") {
       return handleOptions(request, env);
     }
 
     // 路由處理
-    if (path === '/api/generate' && request.method === 'POST') {
+    if (path === "/api/generate" && request.method === "POST") {
       return handleGenerate(request, env);
     }
 
     // 健康檢查
-    if (path === '/health' || path === '/') {
+    if (path === "/health" || path === "/") {
       return new Response(
-        JSON.stringify({ status: 'ok', service: 'haircut-api' }),
+        JSON.stringify({ status: "ok", service: "haircut-api" }),
         {
           status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }
+          headers: { "Content-Type": "application/json" },
+        },
       );
     }
 
     // 404
-    return new Response(
-      JSON.stringify({ error: 'Not Found' }),
-      { status: 404, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: "Not Found" }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   },
 };
