@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_ENDPOINT,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
   timeout: 120000, // 2 minutes for image generation
   headers: {
     'Content-Type': 'application/json'
