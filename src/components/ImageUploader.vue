@@ -1,11 +1,20 @@
 <template>
   <div class="image-uploader">
+    <!-- 從相簿選擇 -->
     <input
       ref="fileInput"
       type="file"
       class="input-file"
       accept="image/jpeg,image/jpg,image/png,image/webp"
-      :capture="enableCamera ? 'user' : undefined"
+      @change="handleFileSelect"
+    />
+    <!-- 拍照用 -->
+    <input
+      ref="cameraInput"
+      type="file"
+      class="input-file"
+      accept="image/jpeg,image/jpg,image/png,image/webp"
+      capture="environment"
       @change="handleFileSelect"
     />
 
@@ -13,7 +22,6 @@
       v-if="!preview"
       class="upload-area"
       :class="{ active: isDragging }"
-      @click="openFileDialog"
       @dragover.prevent="isDragging = true"
       @dragleave.prevent="isDragging = false"
       @drop.prevent="handleDrop"
@@ -35,6 +43,30 @@
         <div>
           <p class="text-lg font-medium text-gray-700">{{ title }}</p>
           <p class="text-sm text-gray-500 mt-1">{{ description }}</p>
+        </div>
+        <!-- 兩個按鈕：拍照 / 選擇照片 -->
+        <div class="flex gap-3 mt-2">
+          <button
+            type="button"
+            class="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+            @click="openCamera"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            拍照
+          </button>
+          <button
+            type="button"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            @click="openFileDialog"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            選擇照片
+          </button>
         </div>
         <p class="text-xs text-gray-400">支援 JPEG、PNG、WebP (最大 30MB)</p>
       </div>
@@ -96,6 +128,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'upload'])
 
 const fileInput = ref(null)
+const cameraInput = ref(null)
 const preview = ref(props.modelValue)
 const isDragging = ref(false)
 const errorMessage = ref('')
@@ -104,6 +137,10 @@ const { compressing, progress: compressionProgress, compressImage } = useImageCo
 
 const openFileDialog = () => {
   fileInput.value?.click()
+}
+
+const openCamera = () => {
+  cameraInput.value?.click()
 }
 
 const handleFileSelect = async (event) => {
@@ -156,6 +193,9 @@ const removeImage = () => {
   emit('update:modelValue', null)
   if (fileInput.value) {
     fileInput.value.value = ''
+  }
+  if (cameraInput.value) {
+    cameraInput.value.value = ''
   }
 }
 </script>
